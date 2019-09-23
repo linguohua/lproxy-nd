@@ -170,6 +170,20 @@ class Tunnel {
     }
 
     onAcceptRequest(sock, info) {
+        let req = this.onAcceptRequestInternal(sock, info);
+
+        if (req !== null) {
+            // enable sock events
+            let reqIdx = req.idx;
+            let reqTag = req.tag;
+
+            this.serveSocket(sock, reqIdx, reqTag);
+        }
+
+        return req;
+    }
+
+    onAcceptRequestInternal(sock, info) {
         if (!this.isConnected) {
             console.log("[Tunnel] accept sock failed, tunnel is disconnected");
 
@@ -185,12 +199,6 @@ class Tunnel {
         // send create message to server
         this.sendCreate2Server(req, info);
 
-        // enable sock events
-        let reqIdx = req.idx;
-        let reqTag = req.tag;
-
-        this.serve_sock(sock, reqIdx, reqTag);
-
         return req;
     }
 
@@ -205,6 +213,22 @@ class Tunnel {
             '\r\n');
 
         this.onSockClientRecvData(sock, req.idx, req.tag, head);
+
+        return req;
+    }
+
+    onAcceptHTTPRequest(reqRaw, info, head) {
+        let req = this.onAcceptRequestInternal(reqRaw.socket, info);
+        if (req === null) {
+            return null;
+        }
+
+        let reqIdx = req.idx;
+        let reqTag = req.tag;
+
+        this.serveHTTPRequest(reqRaw, reqIdx, reqTag);
+
+        this.onSockClientRecvData(reqRaw.socket, req.idx, req.tag, head);
 
         return req;
     }
@@ -270,7 +294,27 @@ class Tunnel {
         }
     }
 
-    serve_sock(sock, idx, tag) {
+    serveHTTPRequest(reqRaw, idx, tag) {
+        let sock = reqRaw.socket;
+        sock.on('end', () => {
+            this.onSockClientRecvFinished(sock, idx, tag);
+        });
+
+        reqRaw.on('close', () => {
+            this.onSockClientRecvClosed(sock, idx, tag);
+        });
+
+        reqRaw.on('aborted', () => {
+            // will emit 'close'
+            this.onSockClientRecvClosed(sock, idx, tag);
+        });
+
+        reqRaw.on('data', (data) => {
+            this.onSockClientRecvData(sock, idx, tag, data);
+        });
+    }
+
+    serveSocket(sock, idx, tag) {
         sock.on('end', () => {
             this.onSockClientRecvFinished(sock, idx, tag);
         });

@@ -57,13 +57,31 @@ class TunMgr {
         let tun = this.allocTunnelForRequest();
         if (tun === null) {
             // failed to allocate tunnel for sock, discard it
-            console.log("[TunMgr] failed to alloc tunnel for sock, discard it");
+            console.log("[TunMgr] failed to alloc tunnel for https, discard it");
 
             sock.destroy();
             return;
         }
 
         if (tun.onAcceptHTTPsRequest(sock, info, head) === null) {
+            sock.destroy();
+            return;
+        }
+    }
+
+    onAcceptHTTPRequest(reqRaw, info, head) {
+        let sock = reqRaw.socket;
+        // allocate tunnel for sock
+        let tun = this.allocTunnelForRequest();
+        if (tun === null) {
+            // failed to allocate tunnel for sock, discard it
+            console.log("[TunMgr] failed to alloc tunnel for http, discard it");
+
+            sock.destroy();
+            return;
+        }
+
+        if (tun.onAcceptHTTPRequest(reqRaw, info, head) === null) {
             sock.destroy();
             return;
         }

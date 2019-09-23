@@ -29,6 +29,37 @@ srv.listen(socks5_port, 'localhost', function () {
 // socks5
 srv.useAuth(socks.auth.None())
 
+function requestListener(req, res) {
+    // console.log(`requestListener: ${req.url}`);
+    const srvUrl = url.parse(`${req.url}`);
+
+    let info = {};
+    info.srcAddr = req.socket.localAddress;
+    info.srcPort = req.socket.localPort;
+    info.dstAddr = srvUrl.hostname;
+    if (srvUrl.port) {
+        info.dstPort = srvUrl.port;
+    } else {
+        info.dstPort = 80;
+    }
+
+    console.log('accept http, srcAddr:', info.srcAddr, ',srcPort:', info.srcPort,
+        ',dstAddr:', info.dstAddr, ',dstPort:', info.dstPort);
+
+    let path = srvUrl.path;
+    let strHead = `${req.method} ${path} HTTP/${req.httpVersion}\r\n`;
+    const headers = req.rawHeaders;
+    const count = headers.length / 2;
+    for (let i = 0; i < count; i++) {
+        let line = `${headers[2 * i]}:${headers[2 * i + 1]}\r\n`;
+        strHead = strHead + line
+    }
+    strHead = strHead + "\r\n";
+    let head = Buffer.from(strHead);
+
+    tm.onAcceptHTTPRequest(req, info, head);
+}
+
 function connectListener(req, cltSocket, head) {
     // connect to an origin server
     // console.log(`connectListener: ${req.url}`);
@@ -50,7 +81,7 @@ function startHttpProxy() {
     const proxy = http.createServer();
 
     // add listener
-    // proxy.on('request', requestListener);
+    proxy.on('request', requestListener);
     proxy.on('connect', connectListener);
 
     // now that proxy is running
