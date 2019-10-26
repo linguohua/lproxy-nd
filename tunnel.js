@@ -21,7 +21,8 @@ const CMD_ReqServerFinished = 5;
 const CMD_ReqServerClosed = 6;
 
 class Tunnel {
-    constructor(idx, tunmgr, url, cap) {
+    constructor(uuid, idx, tunmgr, url, cap) {
+        this.uuid = uuid
         this.idx = idx;
         this.tunmgr = tunmgr;
         this.url = url;
@@ -45,7 +46,7 @@ class Tunnel {
             this.ws.close();
         }
 
-        this.ws = new WebSocket(this.url + "?cap=" + this.cap);
+        this.ws = new WebSocket(this.url + "?cap=" + this.cap + "&uuid=" + this.uuid);
         let wsold = this.ws;
 
         this.ws.on('open', () => {
