@@ -6,8 +6,8 @@ const url = require('url');
 
 const socks5_port = 1080;
 const http_port = 1081;
-
-let tm = new tmclass(20, 200, "wss://host:port/path");
+const uuid = "uuid";
+let tm = new tmclass(uuid, 3, 200, "wss://host/path");
 tm.startup();
 
 let srv = socks.createServer((info, accept, deny) => {
