@@ -3,7 +3,8 @@
 const tunbuilder = require("./tunnel");
 
 class TunMgr {
-    constructor(tunnelCount, tunnelCap, url) {
+    constructor(uuid, tunnelCount, tunnelCap, url) {
+        this.uuid = uuid;
         this.tunnelCount = tunnelCount;
         this.tunnelCap = tunnelCap;
         this.url = url;
@@ -17,7 +18,7 @@ class TunMgr {
         this.tunnels = [];
         this.sortedTunnels = [];
         for (let i = 0; i < this.tunnelCount; i++) {
-            let tunnel = new tunbuilder(i, this, this.url, this.tunnelCap);
+            let tunnel = new tunbuilder(this.uuid, i, this, this.url, this.tunnelCap);
             this.tunnels.push(tunnel);
             this.sortedTunnels.push(tunnel);
 
@@ -33,6 +34,12 @@ class TunMgr {
         setInterval(() => {
             this.doSortTunnels();
         }, 3 * 1000);
+		
+        // avoid QOS timer
+        setInterval(() => {
+            this.avoidQOS();
+        }, 2 * 60 * 60 * 1000);
+
     }
 
     onAcceptRequest(sock, info) {
@@ -159,6 +166,16 @@ class TunMgr {
     onTunnelBroken(tun) {
         this.reconnects.push(tun.idx);
     }
+	
+	avoidQOS() {
+        let length = this.tunnels.length;
+        for (let i = 0; i < length; i++) {
+            let tun = this.tunnels[i];
+            if (tun.isConnected) {
+                tun.closeTunnel();
+            }
+        }
+	}
 };
 
 module.exports = TunMgr;
